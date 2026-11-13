@@ -69,7 +69,7 @@
         // TEMPORARY demo accounts. Replaced by the Django login API in the last step.
         const DEMO = {
             admin: { username: "admin", password: "admin123", name: "Dairy Admin" },
-            farmer: { username: "farmer", password: "farmer123", name: "Ram Bahadur" },
+            farmer: { username: "farmer", password: "farmer123", name: "Ram Bahadur Gurung", code: "F001" },
         };
 
         document.getElementById("loginForm").addEventListener("submit", (e) => {
@@ -83,7 +83,7 @@
 
             const acc = DEMO[role];
             if (username === acc.username && password === acc.password) {
-                Session.set({ role: role, name: acc.name, username: username });
+                Session.set({ role: role, name: acc.name, username: username, code: acc.code });
                 window.location.href = role + "/dashboard.html";
             } else {
                 showToast("Invalid username or password.", "error");

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Collections | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6">
+            <h2 class="mb-6 text-2xl font-semibold text-slate-800">My Collections</h2>
+
+            <div class="card mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="from" class="form-label">From</label>
+                    <input id="from" type="date" class="form-input border" />
+                </div>
+                <div>
+                    <label for="to" class="form-label">To</label>
+                    <input id="to" type="date" class="form-input border" />
+                </div>
+                <div>
+                    <label for="type" class="form-label">Milk type</label>
+                    <select id="type" class="form-input border">
+                        <option value="all">All</option>
+                        <option value="cow">Cow</option>
+                        <option value="buffalo">Buffalo</option>
+                    </select>
+                </div>
+            </div>
+
+            <p id="totals" class="mb-3 text-sm font-medium text-slate-600"></p>
+
+            <div class="table-wrap">
+                <table class="table-base">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Shift</th>
+                            <th>Type</th>
+                            <th>Liters</th>
+                            <th>Fat</th>
+                            <th>SNF</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        function init(user) {
+            renderLayout("farmer", "collections");
+            const el = (id) => document.getElementById(id);
+            const today = todayISO();
+            el("from").value = today.slice(0, 7) + "-01";
+            el("to").value = today;
+
+            function render() {
+                const from = el("from").value, to = el("to").value, type = el("type").value;
+                const rows = Collections.all()
+                    .filter((e) => e.farmer === user.code &&
+                        (!from || e.date >= from) && (!to || e.date <= to) &&
+                        (type === "all" || e.type === type))
+                    .sort((a, b) => (a.date === b.date ? (a.shift === b.shift ? 0 : a.shift === "morning" ? -1 : 1) : b.date.localeCompare(a.date)));
+
+                el("tbody").innerHTML = rows.length === 0
+                    ? '<tr><td colspan="8" class="py-8 text-center text-slate-500">No entries found for this filter.</td></tr>'
+                    : rows.map((e) => `
+            <tr>
+              <td>${formatDate(e.date)}</td>
+              <td class="capitalize">${esc(e.shift)}</td>
+              <td class="capitalize">${esc(e.type)}</td>
+              <td>${e.qty.toFixed(1)}</td>
+              <td>${e.fat.toFixed(1)}</td>
+              <td>${e.snf.toFixed(1)}</td>
+              <td>${formatNPR(e.rate)}</td>
+              <td class="font-medium">${formatNPR(e.amount)}</td>
+            </tr>`).join("");
+
+                const liters = rows.reduce((s, e) => s + e.qty, 0);
+                const money = rows.reduce((s, e) => s + e.amount, 0);
+                el("totals").textContent = rows.length
+                    ? rows.length + " entries / " + liters.toFixed(1) + " L / " + formatNPR(money)
+                    : "";
+            }
+
+            ["from", "to", "type"].forEach((id) => el(id).addEventListener("change", render));
+            render();
+        }
+
+        const user = requireRole("farmer");
+        if (user && !user.code) {
+            Session.clear();
+            window.location.href = "../index.html";
+        } else if (user) {
+            init(user);
+        }
+    </script>
+</body>
+
+</html>

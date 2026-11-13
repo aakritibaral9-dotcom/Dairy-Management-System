@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Payments | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64 print:ml-0">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6 print:p-0">
+            <h2 class="mb-6 text-2xl font-semibold text-slate-800 no-print">My Payments</h2>
+
+            <div class="card no-print mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="pMonth" class="form-label">Month</label>
+                    <input id="pMonth" type="month" class="form-input border" />
+                </div>
+                <div>
+                    <label for="pMode" class="form-label">Period</label>
+                    <select id="pMode" class="form-input border">
+                        <option value="first">Fortnight 1 (1st - 15th)</option>
+                        <option value="second">Fortnight 2 (16th - end)</option>
+                        <option value="month">Full month</option>
+                    </select>
+                </div>
+                <button id="printBtn" class="btn-primary">Print statement</button>
+            </div>
+
+            <div id="statement" class="card mb-8 print:border-0 print:shadow-none"></div>
+
+            <div class="no-print">
+                <h3 class="mb-3 text-lg font-semibold text-slate-800">Recent fortnights</h3>
+                <div class="table-wrap">
+                    <table class="table-base">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>Days</th>
+                                <th>Liters</th>
+                                <th>Amount</th>
+                                <th class="text-right">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        function init(user) {
+            renderLayout("farmer", "payments");
+            const el = (id) => document.getElementById(id);
+            const today = todayISO();
+            el("pMonth").value = today.slice(0, 7);
+            el("pMode").value = Number(today.slice(8, 10)) <= 15 ? "first" : "second";
+
+            function mine(from, to) {
+                return Payments.summarize(from, to).find((r) => r.farmer === user.code) || null;
+            }
+
+            function renderStatement() {
+                const month = el("pMonth").value;
+                const box = el("statement");
+                if (!month) { box.innerHTML = '<p class="py-6 text-center text-slate-500">Choose a month.</p>'; return; }
+
+                const range = Payments.range(month, el("pMode").value);
+                const row = mine(range.from, range.to);
+                const header = `
+          <div class="mb-4 border-b border-slate-200 pb-3 text-center">
+            <h3 class="text-lg font-bold text-slate-800">Dairy Milk Collection Center</h3>
+            <p class="text-sm text-slate-500">Payment statement</p>
+          </div>
+          <div class="mb-4 grid gap-1 text-sm sm:grid-cols-2">
+            <p><span class="text-slate-500">Farmer:</span> <span class="font-medium">${esc(user.name)}</span></p>
+            <p><span class="text-slate-500">Code:</span> <span class="font-medium">${esc(user.code)}</span></p>
+            <p class="sm:col-span-2"><span class="text-slate-500">Period:</span> ${formatDate(range.from)} to ${formatDate(range.to)}</p>
+          </div>`;
+
+                if (!row) {
+                    box.innerHTML = header + '<p class="py-6 text-center text-slate-500">No milk recorded in this period.</p>';
+                    return;
+                }
+
+                box.innerHTML = header + `
+          <div class="mb-4 grid gap-3 sm:grid-cols-4">
+            <div class="rounded-lg bg-brand-50 p-3"><p class="text-xs text-slate-500">Total liters</p><p class="font-semibold text-brand-800">${row.qty.toFixed(1)} L</p></div>
+            <div class="rounded-lg bg-brand-50 p-3"><p class="text-xs text-slate-500">Avg Fat</p><p class="font-semibold text-brand-800">${row.avgFat.toFixed(2)}</p></div>
+            <div class="rounded-lg bg-brand-50 p-3"><p class="text-xs text-slate-500">Avg SNF</p><p class="font-semibold text-brand-800">${row.avgSnf.toFixed(2)}</p></div>
+            <div class="rounded-lg bg-brand-50 p-3"><p class="text-xs text-slate-500">Total amount</p><p class="font-semibold text-brand-800">${formatNPR(row.amount)}</p></div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table-base">
+              <thead><tr><th>Date</th><th>Shift</th><th>Type</th><th>Liters</th><th>Fat</th><th>SNF</th><th>Rate</th><th>Amount</th></tr></thead>
+              <tbody>
+                ${row.entries.map((e) => `
+                  <tr>
+                    <td>${formatDate(e.date)}</td>
+                    <td class="capitalize">${esc(e.shift)}</td>
+                    <td class="capitalize">${esc(e.type)}</td>
+                    <td>${e.qty.toFixed(1)}</td>
+                    <td>${e.fat.toFixed(1)}</td>
+                    <td>${e.snf.toFixed(1)}</td>
+                    <td>${formatNPR(e.rate)}</td>
+                    <td>${formatNPR(e.amount)}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>`;
+            }
+
+            /* Last 6 fortnights, newest first */
+            function recentPeriods(n) {
+                const out = [];
+                const now = new Date();
+                let y = now.getFullYear(), m = now.getMonth() + 1;
+                let mode = now.getDate() <= 15 ? "first" : "second";
+                for (let i = 0; i < n; i++) {
+                    out.push({ month: y + "-" + String(m).padStart(2, "0"), mode: mode });
+                    if (mode === "second") { mode = "first"; }
+                    else { mode = "second"; m--; if (m === 0) { m = 12; y--; } }
+                }
+                return out;
+            }
+
+            function renderHistory() {
+                el("history").innerHTML = recentPeriods(6).map((p) => {
+                    const r = Payments.range(p.month, p.mode);
+                    const row = mine(r.from, r.to);
+                    return `
+            <tr>
+              <td>${formatDate(r.from)} to ${formatDate(r.to)}</td>
+              <td>${row ? row.days : 0}</td>
+              <td>${row ? row.qty.toFixed(1) : "0.0"}</td>
+              <td class="font-medium">${formatNPR(row ? row.amount : 0)}</td>
+              <td class="text-right">
+                <button data-month="${p.month}" data-mode="${p.mode}" class="text-sm font-medium text-brand-700 hover:underline">View</button>
+              </td>
+            </tr>`;
+                }).join("");
+            }
+
+            el("history").addEventListener("click", (e) => {
+                const btn = e.target.closest("button[data-month]");
+                if (!btn) return;
+                el("pMonth").value = btn.dataset.month;
+                el("pMode").value = btn.dataset.mode;
+                renderStatement();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+
+            el("pMonth").addEventListener("change", renderStatement);
+            el("pMode").addEventListener("change", renderStatement);
+            el("printBtn").addEventListener("click", () => window.print());
+
+            renderStatement();
+            renderHistory();
+        }
+
+        const user = requireRole("farmer");
+        if (user && !user.code) {
+            Session.clear();
+            window.location.href = "../index.html";
+        } else if (user) {
+            init(user);
+        }
+    </script>
+</body>
+
+</html>
