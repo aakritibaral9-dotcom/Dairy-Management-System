@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payments | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6">
+            <h2 class="mb-6 text-2xl font-semibold text-slate-800">Payments</h2>
+
+            <div class="card mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="pMonth" class="form-label">Month</label>
+                    <input id="pMonth" type="month" class="form-input border" />
+                </div>
+                <div>
+                    <label for="pMode" class="form-label">Period</label>
+                    <select id="pMode" class="form-input border">
+                        <option value="first">Fortnight 1 (1st - 15th)</option>
+                        <option value="second">Fortnight 2 (16th - end)</option>
+                        <option value="month">Full month</option>
+                    </select>
+                </div>
+                <p class="text-sm text-slate-600">Period: <span id="periodText" class="font-medium"></span></p>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table-base">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Farmer</th>
+                            <th>Days</th>
+                            <th>Total liters</th>
+                            <th>Avg Fat</th>
+                            <th>Avg SNF</th>
+                            <th>Total amount</th>
+                            <th class="text-right">Slip</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                    <tfoot id="tfoot"></tfoot>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        requireRole("admin");
+        renderLayout("admin", "payments");
+
+        const el = (id) => document.getElementById(id);
+        const today = todayISO();
+        el("pMonth").value = today.slice(0, 7);
+        el("pMode").value = Number(today.slice(8, 10)) <= 15 ? "first" : "second";
+
+        function render() {
+            const month = el("pMonth").value;
+            if (!month) {
+                el("tbody").innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Choose a month.</td></tr>';
+                el("tfoot").innerHTML = "";
+                el("periodText").textContent = "-";
+                return;
+            }
+            const range = Payments.range(month, el("pMode").value);
+            el("periodText").textContent = formatDate(range.from) + " to " + formatDate(range.to);
+
+            const rows = Payments.summarize(range.from, range.to);
+
+            if (rows.length === 0) {
+                el("tbody").innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">No milk collected in this period.</td></tr>';
+                el("tfoot").innerHTML = "";
+                return;
+            }
+
+            el("tbody").innerHTML = rows.map((r) => {
+                const link = "payment-slip.html?farmer=" + encodeURIComponent(r.farmer) +
+                    "&from=" + range.from + "&to=" + range.to;
+                return `
+          <tr>
+            <td class="font-medium">${esc(r.farmer)}</td>
+            <td>${esc(r.name)}</td>
+            <td>${r.days}</td>
+            <td>${r.qty.toFixed(1)}</td>
+            <td>${r.avgFat.toFixed(2)}</td>
+            <td>${r.avgSnf.toFixed(2)}</td>
+            <td class="font-medium">${formatNPR(r.amount)}</td>
+            <td class="text-right"><a href="${link}" class="text-sm font-medium text-brand-700 hover:underline">View / Print</a></td>
+          </tr>`;
+            }).join("");
+
+            const liters = rows.reduce((s, r) => s + r.qty, 0);
+            const total = rows.reduce((s, r) => s + r.amount, 0);
+            el("tfoot").innerHTML = `
+        <tr class="bg-brand-50 font-semibold">
+          <td colspan="3">Total (${rows.length} farmers)</td>
+          <td>${liters.toFixed(1)}</td>
+          <td></td><td></td>
+          <td>${formatNPR(total)}</td>
+          <td></td>
+        </tr>`;
+        }
+
+        el("pMonth").addEventListener("change", render);
+        el("pMode").addEventListener("change", render);
+        render();
+    </script>
+</body>
+
+</html>

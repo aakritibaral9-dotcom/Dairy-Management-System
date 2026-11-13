@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment Slip | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64 print:ml-0">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6 print:p-0">
+            <div class="no-print mb-4 flex gap-3">
+                <a href="payments.html" class="btn-secondary">&larr; Back</a>
+                <button id="printBtn" class="btn-primary">Print slip</button>
+            </div>
+
+            <div id="slip" class="card mx-auto max-w-3xl print:border-0 print:shadow-none"></div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        requireRole("admin");
+        renderLayout("admin", "payments");
+
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("farmer");
+        const from = params.get("from");
+        const to = params.get("to");
+        const slip = document.getElementById("slip");
+
+        document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+        const row = (code && from && to)
+            ? Payments.summarize(from, to).find((r) => r.farmer === code)
+            : null;
+
+        if (!row) {
+            slip.innerHTML = '<p class="py-8 text-center text-slate-500">No slip data. Go back and choose a farmer from the Payments page.</p>';
+        } else {
+            const farmer = Farmers.all().find((f) => f.code === code) || {};
+            slip.innerHTML = `
+        <div class="mb-6 border-b border-slate-200 pb-4 text-center">
+          <h1 class="text-xl font-bold text-slate-800">Dairy Milk Collection Center</h1>
+          <p class="text-sm text-slate-500">Farmer Payment Slip</p>
+        </div>
+
+        <div class="mb-6 grid gap-2 text-sm sm:grid-cols-2">
+          <p><span class="text-slate-500">Farmer:</span> <span class="font-medium">${esc(row.name)}</span></p>
+          <p><span class="text-slate-500">Code:</span> <span class="font-medium">${esc(row.farmer)}</span></p>
+          <p><span class="text-slate-500">Phone:</span> ${esc(farmer.phone || "-")}</p>
+          <p><span class="text-slate-500">Period:</span> ${formatDate(from)} to ${formatDate(to)}</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table-base">
+            <thead>
+              <tr><th>Date</th><th>Shift</th><th>Type</th><th>Liters</th><th>Fat</th><th>SNF</th><th>Rate</th><th>Amount</th></tr>
+            </thead>
+            <tbody>
+              ${row.entries.map((e) => `
+                <tr>
+                  <td>${formatDate(e.date)}</td>
+                  <td class="capitalize">${esc(e.shift)}</td>
+                  <td class="capitalize">${esc(e.type)}</td>
+                  <td>${e.qty.toFixed(1)}</td>
+                  <td>${e.fat.toFixed(1)}</td>
+                  <td>${e.snf.toFixed(1)}</td>
+                  <td>${formatNPR(e.rate)}</td>
+                  <td>${formatNPR(e.amount)}</td>
+                </tr>`).join("")}
+            </tbody>
+            <tfoot>
+              <tr class="bg-brand-50 font-semibold">
+                <td colspan="3">Total</td>
+                <td>${row.qty.toFixed(1)}</td>
+                <td>${row.avgFat.toFixed(2)}</td>
+                <td>${row.avgSnf.toFixed(2)}</td>
+                <td></td>
+                <td>${formatNPR(row.amount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-sm text-slate-600">
+          <div class="border-t border-slate-400 pt-2">Farmer signature</div>
+          <div class="border-t border-slate-400 pt-2">Authorized signature</div>
+        </div>`;
+        }
+    </script>
+</body>
+
+</html>

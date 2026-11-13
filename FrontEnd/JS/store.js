@@ -95,3 +95,49 @@ const Collections = {
   },
   remove(id) { this.save(this.all().filter((e) => e.id !== id)); },
 };
+const Payments = {
+  /* mode: "first" (1st-15th), "second" (16th-end), "month" (whole month). month = "YYYY-MM" */
+  range(month, mode) {
+    const y = Number(month.slice(0, 4));
+    const m = Number(month.slice(5, 7));
+    const last = new Date(y, m, 0).getDate();
+    const from = month + "-" + (mode === "second" ? "16" : "01");
+    const to = month + "-" + (mode === "first" ? "15" : String(last).padStart(2, "0"));
+    return { from, to };
+  },
+
+  /* One summary row per farmer who has entries between from and to (inclusive) */
+  summarize(from, to) {
+    const names = {};
+    Farmers.all().forEach((f) => { names[f.code] = f.name; });
+    const map = {};
+
+    Collections.all()
+      .filter((e) => e.date >= from && e.date <= to)
+      .forEach((e) => {
+        const r = map[e.farmer] || (map[e.farmer] = {
+          farmer: e.farmer, name: names[e.farmer] || e.farmer,
+          qty: 0, fatQty: 0, snfQty: 0, amount: 0, dates: {}, entries: [],
+        });
+        r.qty += e.qty;
+        r.fatQty += e.fat * e.qty;
+        r.snfQty += e.snf * e.qty;
+        r.amount += e.amount;
+        r.dates[e.date] = true;
+        r.entries.push(e);
+      });
+
+    return Object.values(map)
+      .map((r) => ({
+        farmer: r.farmer, name: r.name,
+        days: Object.keys(r.dates).length,
+        qty: r.qty,
+        avgFat: r.fatQty / r.qty,
+        avgSnf: r.snfQty / r.qty,
+        amount: Math.round(r.amount * 100) / 100,
+        entries: r.entries.sort((a, b) =>
+          a.date === b.date ? (a.shift === b.shift ? 0 : a.shift === "morning" ? -1 : 1) : a.date.localeCompare(b.date)),
+      }))
+      .sort((a, b) => a.farmer.localeCompare(b.farmer));
+  },
+};
