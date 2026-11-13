@@ -46,3 +46,39 @@ const Farmers = {
     return "F" + String(max + 1).padStart(3, "0");
   },
 };
+const RATE_FATS = [3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5];
+const RATE_SNFS = [7.5, 8.0, 8.5, 9.0];
+
+const RateChart = {
+  KEY: "dairy_rate_chart",
+  keyOf(fat, snf) { return fat.toFixed(1) + "|" + snf.toFixed(1); },
+  seed() {
+    const map = {};
+    RATE_FATS.forEach((f) => {
+      RATE_SNFS.forEach((s) => {
+        map[this.keyOf(f, s)] = Math.round(20 + f * 8 + (s - 7.5) * 4);
+      });
+    });
+    return map;
+  },
+  all() {
+    let map = Store.load(this.KEY, null);
+    if (!map) {
+      map = this.seed();
+      Store.save(this.KEY, map);
+    }
+    return map;
+  },
+  save(map) { Store.save(this.KEY, map); },
+  reset() { localStorage.removeItem(this.KEY); },
+
+  /* Returns the rate per liter, or null if Fat/SNF is below the chart.
+     Values between steps use the step below (e.g. Fat 4.3 uses 4.0). */
+  lookup(fat, snf) {
+    const f = [...RATE_FATS].reverse().find((x) => x <= fat);
+    const s = [...RATE_SNFS].reverse().find((x) => x <= snf);
+    if (f === undefined || s === undefined) return null;
+    const v = this.all()[this.keyOf(f, s)];
+    return v === undefined ? null : Number(v);
+  },
+};
