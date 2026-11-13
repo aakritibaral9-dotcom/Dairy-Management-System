@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login | Dairy Milk Collection System</title>
+    <link rel="stylesheet" href="css/output.css" />
+</head>
+
+<body class="flex min-h-screen items-center justify-center p-4">
+    <div class="card w-full max-w-md">
+        <div class="mb-6 text-center">
+            <h1 class="text-2xl font-bold text-brand-700">Dairy Milk Collection</h1>
+            <p class="text-sm text-slate-500">Farmer Payment Management System</p>
+        </div>
+
+        <div class="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+            <button type="button" data-role="admin" class="role-tab rounded-md py-2 text-sm font-medium">Admin /
+                Staff</button>
+            <button type="button" data-role="farmer"
+                class="role-tab rounded-md py-2 text-sm font-medium">Farmer</button>
+        </div>
+
+        <form id="loginForm" novalidate class="space-y-4">
+            <div>
+                <label for="username" class="form-label">Username</label>
+                <input id="username" type="text" class="form-input border" autocomplete="username" />
+                <p id="usernameErr" class="form-error hidden"></p>
+            </div>
+            <div>
+                <label for="password" class="form-label">Password</label>
+                <input id="password" type="password" class="form-input border" autocomplete="current-password" />
+                <p id="passwordErr" class="form-error hidden"></p>
+            </div>
+            <button type="submit" class="btn-primary w-full">Login</button>
+        </form>
+
+        <p class="mt-6 text-center text-xs text-slate-400">Demo: admin / admin123 &middot; farmer / farmer123</p>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script>
+        let role = "admin";
+        const tabs = document.querySelectorAll(".role-tab");
+
+        function paintTabs() {
+            tabs.forEach((t) => {
+                const on = t.dataset.role === role;
+                t.className = "role-tab rounded-md py-2 text-sm font-medium " +
+                    (on ? "bg-white text-brand-700 shadow" : "text-slate-500");
+            });
+        }
+        tabs.forEach((t) =>
+            t.addEventListener("click", () => { role = t.dataset.role; paintTabs(); })
+        );
+        paintTabs();
+
+        // Already logged in: go straight to the dashboard
+        const existing = Session.get();
+        if (existing) window.location.href = existing.role + "/dashboard.html";
+
+        function setErr(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.classList.toggle("hidden", !msg);
+        }
+
+        // TEMPORARY demo accounts. Replaced by the Django login API in the last step.
+        const DEMO = {
+            admin: { username: "admin", password: "admin123", name: "Dairy Admin" },
+            farmer: { username: "farmer", password: "farmer123", name: "Ram Bahadur" },
+        };
+
+        document.getElementById("loginForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+
+            setErr("usernameErr", username ? "" : "Username is required.");
+            setErr("passwordErr", password.length >= 6 ? "" : "Password must be at least 6 characters.");
+            if (!username || password.length < 6) return;
+
+            const acc = DEMO[role];
+            if (username === acc.username && password === acc.password) {
+                Session.set({ role: role, name: acc.name, username: username });
+                window.location.href = role + "/dashboard.html";
+            } else {
+                showToast("Invalid username or password.", "error");
+            }
+        });
+    </script>
+</body>
+
+</html>

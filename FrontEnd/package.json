@@ -1,0 +1,13 @@
+{
+  "name": "dairy-management-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Dairy Milk Collection and Farmer Payment Management System",
+  "scripts": {
+    "build": "tailwindcss -i ./src/input.css -o ./css/output.css --minify",
+    "watch": "tailwindcss -i ./src/input.css -o ./css/output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "license": "ISC"
+}

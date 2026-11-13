@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Farmers | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-2xl font-semibold text-slate-800">Farmers</h2>
+                <button id="addBtn" class="btn-primary">+ Add Farmer</button>
+            </div>
+
+            <div class="mb-4 flex flex-wrap gap-3">
+                <input id="search" type="search" placeholder="Search by name, code or phone"
+                    class="form-input w-full border sm:w-80" />
+                <select id="statusFilter" class="form-input w-full border sm:w-40">
+                    <option value="all">All status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table-base">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+            <p id="count" class="mt-3 text-xs text-slate-500"></p>
+        </main>
+    </div>
+
+    <!-- Add / Edit popup -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+        <div class="card w-full max-w-md">
+            <h3 id="modalTitle" class="mb-4 text-lg font-semibold text-slate-800">Add Farmer</h3>
+            <form id="farmerForm" novalidate class="space-y-4">
+                <div>
+                    <label for="fName" class="form-label">Full name</label>
+                    <input id="fName" type="text" class="form-input border" />
+                    <p id="nameErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fPhone" class="form-label">Phone (10 digits)</label>
+                    <input id="fPhone" type="text" inputmode="numeric" maxlength="10" class="form-input border" />
+                    <p id="phoneErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fAddress" class="form-label">Address</label>
+                    <input id="fAddress" type="text" class="form-input border" />
+                    <p id="addressErr" class="form-error hidden"></p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" id="cancelBtn" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        requireRole("admin");
+        renderLayout("admin", "farmers");
+
+        let farmers = Farmers.all();
+        let editingCode = null;
+
+        const tbody = document.getElementById("tbody");
+        const search = document.getElementById("search");
+        const statusFilter = document.getElementById("statusFilter");
+        const modal = document.getElementById("modal");
+
+        function render() {
+            const q = search.value.trim().toLowerCase();
+            const st = statusFilter.value;
+            const rows = farmers.filter((f) =>
+                (st === "all" || f.status === st) &&
+                (f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q) || f.phone.includes(q))
+            );
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">No farmers found.</td></tr>';
+            } else {
+                tbody.innerHTML = rows.map((f) => `
+          <tr>
+            <td class="font-medium">${esc(f.code)}</td>
+            <td>${esc(f.name)}</td>
+            <td>${esc(f.phone)}</td>
+            <td>${esc(f.address)}</td>
+            <td><span class="${f.status === "active" ? "badge-success" : "badge-warning"}">${f.status}</span></td>
+            <td class="text-right">
+              <button data-action="edit" data-code="${esc(f.code)}" class="text-sm font-medium text-brand-700 hover:underline">Edit</button>
+              <button data-action="toggle" data-code="${esc(f.code)}" class="ml-3 text-sm font-medium text-slate-600 hover:underline">
+                ${f.status === "active" ? "Deactivate" : "Activate"}
+              </button>
+            </td>
+          </tr>`).join("");
+            }
+            document.getElementById("count").textContent =
+                "Showing " + rows.length + " of " + farmers.length + " farmers";
+        }
+
+        function setErr(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.classList.toggle("hidden", !msg);
+        }
+
+        function openModal(farmer) {
+            editingCode = farmer ? farmer.code : null;
+            document.getElementById("modalTitle").textContent = farmer ? "Edit Farmer " + farmer.code : "Add Farmer";
+            document.getElementById("fName").value = farmer ? farmer.name : "";
+            document.getElementById("fPhone").value = farmer ? farmer.phone : "";
+            document.getElementById("fAddress").value = farmer ? farmer.address : "";
+            ["nameErr", "phoneErr", "addressErr"].forEach((id) => setErr(id, ""));
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            document.getElementById("fName").focus();
+        }
+
+        function closeModal() {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        document.getElementById("addBtn").addEventListener("click", () => openModal(null));
+        document.getElementById("cancelBtn").addEventListener("click", closeModal);
+        modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+        search.addEventListener("input", render);
+        statusFilter.addEventListener("change", render);
+
+        tbody.addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-action]");
+            if (!btn) return;
+            const farmer = farmers.find((f) => f.code === btn.dataset.code);
+            if (!farmer) return;
+
+            if (btn.dataset.action === "edit") {
+                openModal(farmer);
+            } else {
+                farmer.status = farmer.status === "active" ? "inactive" : "active";
+                Farmers.save(farmers);
+                render();
+                showToast(farmer.name + " is now " + farmer.status + ".", "info");
+            }
+        });
+
+        document.getElementById("farmerForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const name = document.getElementById("fName").value.trim();
+            const phone = document.getElementById("fPhone").value.trim();
+            const address = document.getElementById("fAddress").value.trim();
+
+            const nameOk = name.length >= 3;
+            const phoneOk = /^9[78]\d{8}$/.test(phone);
+            const addressOk = address.length >= 2;
+            setErr("nameErr", nameOk ? "" : "Enter the full name (at least 3 letters).");
+            setErr("phoneErr", phoneOk ? "" : "Enter a valid 10-digit number starting with 97 or 98.");
+            setErr("addressErr", addressOk ? "" : "Address is required.");
+            if (!nameOk || !phoneOk || !addressOk) return;
+
+            if (editingCode) {
+                const f = farmers.find((x) => x.code === editingCode);
+                f.name = name; f.phone = phone; f.address = address;
+                showToast("Farmer updated.", "success");
+            } else {
+                farmers.push({ code: Farmers.nextCode(farmers), name, phone, address, status: "active" });
+                showToast("Farmer added.", "success");
+            }
+            Farmers.save(farmers);
+            closeModal();
+            render();
+        });
+
+        render();
+    </script>
+</body>
+
+</html>
