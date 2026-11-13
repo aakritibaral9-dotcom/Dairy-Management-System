@@ -82,3 +82,16 @@ const RateChart = {
     return v === undefined ? null : Number(v);
   },
 };
+const Collections = {
+  KEY: "dairy_collections",
+  all() { return Store.load(this.KEY, []); },
+  save(list) { Store.save(this.KEY, list); },
+  add(entry) {
+    const list = this.all();
+    entry.id = Date.now();
+    list.push(entry);
+    this.save(list);
+    return entry;
+  },
+  remove(id) { this.save(this.all().filter((e) => e.id !== id)); },
+};

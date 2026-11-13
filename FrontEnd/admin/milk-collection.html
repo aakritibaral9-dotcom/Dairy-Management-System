@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Milk Collection | Dairy System</title>
+    <link rel="stylesheet" href="../css/output.css" />
+</head>
+
+<body>
+    <aside id="sidebar"></aside>
+
+    <div class="flex min-h-screen flex-col lg:ml-64">
+        <header id="topbar"></header>
+
+        <main class="flex-1 p-6">
+            <h2 class="mb-6 text-2xl font-semibold text-slate-800">Milk Collection</h2>
+
+            <form id="entryForm" novalidate class="card mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <label for="fFarmer" class="form-label">Farmer</label>
+                    <select id="fFarmer" class="form-input border"></select>
+                    <p id="farmerErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fDate" class="form-label">Date</label>
+                    <input id="fDate" type="date" class="form-input border" />
+                    <p id="dateErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fShift" class="form-label">Shift</label>
+                    <select id="fShift" class="form-input border">
+                        <option value="morning">Morning</option>
+                        <option value="evening">Evening</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fType" class="form-label">Milk type</label>
+                    <select id="fType" class="form-input border">
+                        <option value="cow">Cow</option>
+                        <option value="buffalo">Buffalo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fQty" class="form-label">Quantity (liters)</label>
+                    <input id="fQty" type="number" step="0.1" min="0" class="form-input border" />
+                    <p id="qtyErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fFat" class="form-label">Fat %</label>
+                    <input id="fFat" type="number" step="0.1" min="0" class="form-input border" />
+                    <p id="fatErr" class="form-error hidden"></p>
+                </div>
+                <div>
+                    <label for="fSnf" class="form-label">SNF %</label>
+                    <input id="fSnf" type="number" step="0.1" min="0" class="form-input border" />
+                    <p id="snfErr" class="form-error hidden"></p>
+                </div>
+
+                <div class="rounded-lg bg-brand-50 p-3 sm:col-span-2 lg:col-span-1">
+                    <p class="text-xs text-slate-500">Rate per liter</p>
+                    <p id="pRate" class="text-lg font-semibold text-brand-800">-</p>
+                    <p class="mt-1 text-xs text-slate-500">Amount</p>
+                    <p id="pAmount" class="text-lg font-semibold text-brand-800">-</p>
+                </div>
+
+                <div class="flex items-end sm:col-span-2 lg:col-span-3">
+                    <button type="submit" class="btn-primary">Save entry</button>
+                </div>
+            </form>
+
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-lg font-semibold text-slate-800">Entries for <span id="listDate"></span></h3>
+                <p id="totals" class="text-sm font-medium text-slate-600"></p>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table-base">
+                    <thead>
+                        <tr>
+                            <th>Farmer</th>
+                            <th>Shift</th>
+                            <th>Type</th>
+                            <th>Liters</th>
+                            <th>Fat</th>
+                            <th>SNF</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                            <th class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script>
+        requireRole("admin");
+        renderLayout("admin", "collection");
+
+        const allFarmers = Farmers.all();
+        const nameOf = {};
+        allFarmers.forEach((f) => { nameOf[f.code] = f.name; });
+
+        const el = (id) => document.getElementById(id);
+        const fFarmer = el("fFarmer"), fDate = el("fDate"), fShift = el("fShift"), fType = el("fType");
+        const fQty = el("fQty"), fFat = el("fFat"), fSnf = el("fSnf");
+
+        fFarmer.innerHTML = '<option value="">Select farmer</option>' +
+            allFarmers.filter((f) => f.status === "active")
+                .map((f) => '<option value="' + esc(f.code) + '">' + esc(f.code) + " - " + esc(f.name) + "</option>")
+                .join("");
+        fDate.value = todayISO();
+
+        function setErr(id, msg) {
+            const p = el(id);
+            p.textContent = msg;
+            p.classList.toggle("hidden", !msg);
+        }
+
+        function currentRate() {
+            const fat = parseFloat(fFat.value), snf = parseFloat(fSnf.value);
+            if (isNaN(fat) || isNaN(snf)) return null;
+            return RateChart.lookup(fat, snf);
+        }
+
+        function preview() {
+            const rate = currentRate();
+            const qty = parseFloat(fQty.value);
+            el("pRate").textContent = rate === null ? "-" : formatNPR(rate);
+            el("pAmount").textContent = (rate === null || isNaN(qty)) ? "-" : formatNPR(qty * rate);
+        }
+
+        [fQty, fFat, fSnf].forEach((i) => i.addEventListener("input", preview));
+
+        function renderTable() {
+            const day = fDate.value;
+            el("listDate").textContent = day ? formatDate(day) : "-";
+            const rows = Collections.all()
+                .filter((e) => e.date === day)
+                .sort((a, b) => (a.shift === b.shift ? a.farmer.localeCompare(b.farmer) : a.shift === "morning" ? -1 : 1));
+
+            el("tbody").innerHTML = rows.length === 0
+                ? '<tr><td colspan="9" class="py-8 text-center text-slate-500">No entries for this date.</td></tr>'
+                : rows.map((e) => `
+          <tr>
+            <td>${esc(nameOf[e.farmer] || e.farmer)}</td>
+            <td class="capitalize">${esc(e.shift)}</td>
+            <td class="capitalize">${esc(e.type)}</td>
+            <td>${e.qty.toFixed(1)}</td>
+            <td>${e.fat.toFixed(1)}</td>
+            <td>${e.snf.toFixed(1)}</td>
+            <td>${formatNPR(e.rate)}</td>
+            <td class="font-medium">${formatNPR(e.amount)}</td>
+            <td class="text-right">
+              <button data-id="${e.id}" class="text-sm font-medium text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>`).join("");
+
+            const liters = rows.reduce((s, e) => s + e.qty, 0);
+            const money = rows.reduce((s, e) => s + e.amount, 0);
+            el("totals").textContent = rows.length
+                ? "Total: " + liters.toFixed(1) + " L / " + formatNPR(money)
+                : "";
+        }
+
+        fDate.addEventListener("change", renderTable);
+
+        el("tbody").addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-id]");
+            if (!btn) return;
+            if (confirm("Delete this entry?")) {
+                Collections.remove(Number(btn.dataset.id));
+                renderTable();
+                showToast("Entry deleted.", "info");
+            }
+        });
+
+        el("entryForm").addEventListener("submit", (ev) => {
+            ev.preventDefault();
+            const farmer = fFarmer.value;
+            const date = fDate.value;
+            const shift = fShift.value;
+            const type = fType.value;
+            const qty = parseFloat(fQty.value);
+            const fat = parseFloat(fFat.value);
+            const snf = parseFloat(fSnf.value);
+
+            const checks = {
+                farmerErr: farmer ? "" : "Select a farmer.",
+                dateErr: date ? "" : "Select a date.",
+                qtyErr: (qty > 0 && qty <= 500) ? "" : "Enter liters between 0.1 and 500.",
+                fatErr: (fat >= 2 && fat <= 10) ? "" : "Fat must be between 2 and 10.",
+                snfErr: (snf >= 6 && snf <= 10) ? "" : "SNF must be between 6 and 10.",
+            };
+            Object.keys(checks).forEach((k) => setErr(k, checks[k]));
+            if (Object.values(checks).some(Boolean)) return;
+
+            const rate = RateChart.lookup(fat, snf);
+            if (rate === null) {
+                setErr("fatErr", "Fat/SNF is below the rate chart (minimum Fat 3.0, SNF 7.5).");
+                return;
+            }
+
+            const duplicate = Collections.all().some((e) =>
+                e.farmer === farmer && e.date === date && e.shift === shift && e.type === type);
+            if (duplicate) {
+                showToast("This farmer already has an entry for that date, shift and milk type.", "error");
+                return;
+            }
+
+            Collections.add({ farmer, date, shift, type, qty, fat, snf, rate, amount: Math.round(qty * rate * 100) / 100 });
+            showToast("Entry saved.", "success");
+            fQty.value = ""; fFat.value = ""; fSnf.value = "";
+            preview();
+            renderTable();
+        });
+
+        preview();
+        renderTable();
+    </script>
+</body>
+
+</html>
