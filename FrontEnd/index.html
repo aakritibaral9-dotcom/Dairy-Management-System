@@ -8,35 +8,165 @@
     <link rel="stylesheet" href="css/output.css" />
 </head>
 
-<body class="flex min-h-screen items-center justify-center p-4">
-    <div class="card w-full max-w-md">
-        <div class="mb-6 text-center">
-            <h1 class="text-2xl font-bold text-brand-700">Dairy Milk Collection</h1>
-            <p class="text-sm text-slate-500">Farmer Payment Management System</p>
-        </div>
+<body>
+    <div class="grid min-h-screen lg:grid-cols-2">
 
-        <div class="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
-            <button type="button" data-role="admin" class="role-tab rounded-md py-2 text-sm font-medium">Admin /
-                Staff</button>
-            <button type="button" data-role="farmer"
-                class="role-tab rounded-md py-2 text-sm font-medium">Farmer</button>
-        </div>
+        <!-- Left: illustration (hidden on small screens) -->
+        <section
+            class="flex flex-col items-center justify-centerbg-gradient-to-br from-brand-700 to-brand-900 p-6 lg:p-10 text-white">
+            <svg viewBox="0 0 640 480" class="w-full max-w-xl" role="img"
+                aria-label="A farmer holding a milk can and a bottle of milk beside a cow">
+                <defs>
+                    <clipPath id="frame">
+                        <rect width="640" height="480" rx="28" />
+                    </clipPath>
+                </defs>
 
-        <form id="loginForm" novalidate class="space-y-4">
-            <div>
-                <label for="username" class="form-label">Username</label>
-                <input id="username" type="text" class="form-input border" autocomplete="username" />
-                <p id="usernameErr" class="form-error hidden"></p>
+                <g clip-path="url(#frame)">
+                    <!-- sky, sun, clouds -->
+                    <rect width="640" height="480" fill="#e0f2fe" />
+                    <circle cx="540" cy="80" r="38" fill="#fde68a" />
+                    <g fill="#ffffff">
+                        <ellipse cx="120" cy="90" rx="50" ry="18" />
+                        <ellipse cx="150" cy="75" rx="34" ry="18" />
+                        <ellipse cx="340" cy="60" rx="44" ry="15" />
+                        <ellipse cx="365" cy="48" rx="28" ry="14" />
+                    </g>
+
+                    <!-- hills and ground -->
+                    <path d="M0 380 Q150 290 320 360 T640 330 L640 480 L0 480 Z" fill="#86efac" />
+                    <path d="M0 420 Q200 360 400 410 T640 390 L640 480 L0 480 Z" fill="#4ade80" />
+                    <rect x="0" y="438" width="640" height="42" fill="#16a34a" />
+
+                    <!-- COW -->
+                    <g stroke="#1e293b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+                        <!-- tail -->
+                        <path d="M108 305 Q78 330 92 372" fill="none" />
+                        <path d="M92 372 L84 388 L100 388 Z" fill="#1e293b" />
+                        <!-- legs -->
+                        <rect x="130" y="360" width="20" height="78" rx="6" fill="#ffffff" />
+                        <rect x="172" y="364" width="20" height="74" rx="6" fill="#ffffff" />
+                        <rect x="236" y="364" width="20" height="74" rx="6" fill="#ffffff" />
+                        <rect x="278" y="360" width="20" height="78" rx="6" fill="#ffffff" />
+                        <!-- hooves -->
+                        <rect x="130" y="424" width="20" height="14" rx="4" fill="#1e293b" />
+                        <rect x="172" y="424" width="20" height="14" rx="4" fill="#1e293b" />
+                        <rect x="236" y="424" width="20" height="14" rx="4" fill="#1e293b" />
+                        <rect x="278" y="424" width="20" height="14" rx="4" fill="#1e293b" />
+                        <!-- udder -->
+                        <ellipse cx="205" cy="384" rx="22" ry="14" fill="#fbcfe8" />
+                        <!-- body -->
+                        <ellipse cx="205" cy="318" rx="108" ry="64" fill="#ffffff" />
+                        <!-- patches -->
+                        <path d="M140 285 Q160 259 188 275 Q202 297 180 313 Q150 321 140 285 Z" fill="#1e293b"
+                            stroke="none" />
+                        <path d="M230 300 Q258 288 274 310 Q278 340 252 344 Q226 336 230 300 Z" fill="#1e293b"
+                            stroke="none" />
+                        <path d="M120 330 Q136 322 146 336 Q140 350 124 346 Z" fill="#1e293b" stroke="none" />
+                        <!-- horns -->
+                        <path d="M302 248 Q292 226 280 228" fill="none" stroke="#d97706" stroke-width="6" />
+                        <path d="M338 246 Q344 222 360 222" fill="none" stroke="#d97706" stroke-width="6" />
+                        <!-- head -->
+                        <ellipse cx="322" cy="282" rx="44" ry="40" fill="#ffffff" />
+                        <!-- ears -->
+                        <ellipse cx="284" cy="268" rx="16" ry="8" transform="rotate(25 284 268)" fill="#1e293b" />
+                        <ellipse cx="362" cy="262" rx="14" ry="7" transform="rotate(-25 362 262)" fill="#1e293b" />
+                        <!-- snout -->
+                        <ellipse cx="346" cy="303" rx="26" ry="19" fill="#fbcfe8" />
+                        <circle cx="338" cy="303" r="3.5" fill="#1e293b" stroke="none" />
+                        <circle cx="354" cy="303" r="3.5" fill="#1e293b" stroke="none" />
+                        <!-- eye -->
+                        <circle cx="328" cy="272" r="4.5" fill="#1e293b" stroke="none" />
+                    </g>
+
+                    <!-- MILK CAN -->
+                    <g stroke="#1e293b" stroke-width="3" stroke-linejoin="round">
+                        <rect x="440" y="336" width="44" height="66" rx="8" fill="#e2e8f0" />
+                        <rect x="446" y="322" width="32" height="18" rx="4" fill="#e2e8f0" />
+                        <ellipse cx="462" cy="322" rx="19" ry="6" fill="#cbd5e1" />
+                        <rect x="440" y="356" width="44" height="8" fill="#16a34a" />
+                    </g>
+
+                    <!-- MILK BOTTLE -->
+                    <g stroke="#1e293b" stroke-width="3" stroke-linejoin="round">
+                        <rect x="578" y="326" width="26" height="52" rx="8" fill="#ffffff" />
+                        <rect x="584" y="312" width="14" height="16" fill="#ffffff" />
+                        <rect x="583" y="306" width="16" height="7" rx="2" fill="#2563eb" />
+                        <rect x="578" y="344" width="26" height="18" fill="#bbf7d0" />
+                    </g>
+
+                    <!-- FARMER -->
+                    <g stroke="#1e293b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+                        <!-- legs and shoes -->
+                        <rect x="505" y="368" width="24" height="70" rx="8" fill="#334155" />
+                        <rect x="535" y="368" width="24" height="70" rx="8" fill="#334155" />
+                        <rect x="500" y="428" width="32" height="10" rx="4" fill="#1e293b" />
+                        <rect x="532" y="428" width="32" height="10" rx="4" fill="#1e293b" />
+                        <!-- torso and apron -->
+                        <rect x="498" y="280" width="68" height="100" rx="24" fill="#2563eb" />
+                        <rect x="510" y="312" width="44" height="68" rx="10" fill="#ffffff" />
+                        <!-- arms (dark outline, then blue) -->
+                        <path d="M506 300 L478 350" fill="none" stroke="#1e293b" stroke-width="20" />
+                        <path d="M506 300 L478 350" fill="none" stroke="#2563eb" stroke-width="14" />
+                        <path d="M558 300 L588 340" fill="none" stroke="#1e293b" stroke-width="20" />
+                        <path d="M558 300 L588 340" fill="none" stroke="#2563eb" stroke-width="14" />
+                        <!-- hands -->
+                        <circle cx="478" cy="352" r="9" fill="#e0ac82" />
+                        <circle cx="588" cy="342" r="9" fill="#e0ac82" />
+                        <!-- head -->
+                        <circle cx="532" cy="248" r="30" fill="#e0ac82" />
+                        <!-- straw hat -->
+                        <ellipse cx="532" cy="228" rx="46" ry="9" fill="#fbbf24" />
+                        <path d="M506 226 Q532 190 558 226 Z" fill="#fbbf24" />
+                        <!-- face -->
+                        <circle cx="521" cy="250" r="3" fill="#1e293b" stroke="none" />
+                        <circle cx="543" cy="250" r="3" fill="#1e293b" stroke="none" />
+                        <path d="M522 262 Q532 272 542 262" fill="none" />
+                    </g>
+                </g>
+            </svg>
+
+            <h2 class="mt-8 text-3xl font-bold">Fresh milk, fair payments</h2>
+            <p class="mt-2 max-w-md text-center text-brand-100">
+                Record daily milk collection, calculate rates from Fat and SNF, and give every farmer a clear payment
+                statement.
+            </p>
+        </section>
+
+        <!-- Right: login form -->
+        <section class="flex items-center justify-center p-6">
+            <div class="card w-full max-w-md">
+                <div class="mb-6 text-center">
+                    <h1 class="text-2xl font-bold text-brand-700">Dairy Milk Collection</h1>
+                    <p class="text-sm text-slate-500">Farmer Payment Management System</p>
+                </div>
+
+                <div class="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+                    <button type="button" data-role="admin" class="role-tab rounded-md py-2 text-sm font-medium">Admin /
+                        Staff</button>
+                    <button type="button" data-role="farmer"
+                        class="role-tab rounded-md py-2 text-sm font-medium">Farmer</button>
+                </div>
+
+                <form id="loginForm" novalidate class="space-y-4">
+                    <div>
+                        <label for="username" class="form-label">Username</label>
+                        <input id="username" type="text" class="form-input border" autocomplete="username" />
+                        <p id="usernameErr" class="form-error hidden"></p>
+                    </div>
+                    <div>
+                        <label for="password" class="form-label">Password</label>
+                        <input id="password" type="password" class="form-input border"
+                            autocomplete="current-password" />
+                        <p id="passwordErr" class="form-error hidden"></p>
+                    </div>
+                    <button type="submit" class="btn-primary w-full">Login</button>
+                </form>
+
+                <p class="mt-6 text-center text-xs text-slate-400">Demo: admin / admin123 &middot; farmer / farmer123
+                </p>
             </div>
-            <div>
-                <label for="password" class="form-label">Password</label>
-                <input id="password" type="password" class="form-input border" autocomplete="current-password" />
-                <p id="passwordErr" class="form-error hidden"></p>
-            </div>
-            <button type="submit" class="btn-primary w-full">Login</button>
-        </form>
-
-        <p class="mt-6 text-center text-xs text-slate-400">Demo: admin / admin123 &middot; farmer / farmer123</p>
+        </section>
     </div>
 
     <script src="js/common.js"></script>
@@ -58,7 +188,9 @@
 
         // Already logged in: go straight to the dashboard
         const existing = Session.get();
-        if (existing) window.location.href = existing.role + "/dashboard.html";
+        if (existing && existing.role && (existing.role === "admin" || existing.code)) {
+            window.location.href = existing.role + "/dashboard.html";
+        }
 
         function setErr(id, msg) {
             const el = document.getElementById(id);
@@ -66,7 +198,7 @@
             el.classList.toggle("hidden", !msg);
         }
 
-        // TEMPORARY demo accounts. Replaced by the Django login API in the last step.
+        // TEMPORARY demo accounts. Replaced by the Django login API (js/api.js).
         const DEMO = {
             admin: { username: "admin", password: "admin123", name: "Dairy Admin" },
             farmer: { username: "farmer", password: "farmer123", name: "Ram Bahadur Gurung", code: "F001" },

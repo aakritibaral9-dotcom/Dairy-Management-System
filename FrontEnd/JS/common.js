@@ -100,6 +100,9 @@ function formatNPR(n) {
 function formatDate(d) {
   return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
+function isoLocal(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
